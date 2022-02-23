@@ -1,0 +1,78 @@
+version: "3.9"
+
+networks:
+    inception:
+        driver: bridge
+        name: inception
+
+volumes:
+    db:
+        name: db
+        driver: local
+        driver_opts:
+            type: none
+            o: bind
+            device: /home/welida/data/db
+    wp:
+        name: wp
+        driver: local
+        driver_opts:
+            type: none
+            o: bind
+            device: /home/welida/data/wp
+
+services:
+
+    nginx:
+        build:
+            context: ./requirements/nginx
+            args:
+                - DOMAIN_NAME
+                - CERTS_CRT
+                - CERTS_KEY
+        restart: always
+        depends_on:
+            - wordpress
+        ports:
+            - "443:443"
+        volumes:
+            - "wp:/var/www/html"
+        image: nginx
+        container_name: nginx
+        hostname: nginx
+        networks:
+            - inception
+
+    wordpress:
+        build:
+            context: ./requirements/wordpress
+            args:
+                - MYSQL_USER
+                - MYSQL_PASSWORD
+        restart: always
+        depends_on:
+            - mariadb
+        volumes:
+            - "wp:/var/www/html"
+        image: wordpress
+        container_name: wordpress
+        hostname: wordpress
+        networks:
+            - inception
+
+    mariadb:
+        build:
+            context: ./requirements/mariadb
+            args:
+                - MYSQL_USER
+                - MYSQL_PASSWORD
+                - MYSQL_ROOT_PASSWORD
+                - DOMAIN_NAME
+        restart: always
+        volumes:
+            - "db:/var/lib/mysql"
+        image: mariadb
+        container_name: mariadb
+        hostname: mariadb
+        networks:
+            - inception
